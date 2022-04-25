@@ -1,0 +1,11 @@
+@import url('https://fonts.googleapis.com/css?family=Sora');
+
+*{
+    font-family: "Sora";
+}
+
+#map
+{
+    width: 512px;
+    height: 512px;
+}

@@ -8,7 +8,7 @@ var ubidots = new Ubidots();
 ubidots.on('receivedToken', function (data)
 {
 	TOKEN = data;
-	console.log("Received Token");
+	console.log("ubidots_map_widget Received Token");
 
 	//try initialise local variables
 	InitialiseElements();	
@@ -18,7 +18,7 @@ ubidots.on('receivedToken', function (data)
 //--------Asynchronous Functionality--------
 //async socket variables
 var socket;
-var URL = "industrial.ubidots.com:443";
+var URL = window.location.hostname + ":443";
 var subscribedVars = [];
 
 //function for subscribing using separate callback function
@@ -85,11 +85,11 @@ function GetVariableID(ubidotsVariableObject)
 {
     console.log("Trying to get id for api_label: " + ubidotsVariableObject.ubidots_api_label);
     
-    var url = 'https://industrial.api.ubidots.com/api/v2.0/devices/~' + DEVICE_API_LABEL +'/variables/~' + ubidotsVariableObject.ubidots_api_label + '/';
+    var url = 'https://' + window.location.hostname + '/api/v2.0/devices/~' + DEVICE_API_LABEL +'/variables/~' + ubidotsVariableObject.ubidots_api_label + '/';
     $.get(url, { token: TOKEN, page_size: 1 }, function (res) 
     {        
         var obj = JSON.parse(JSON.stringify(res));	
-        new_id = obj.id;
+        var new_id = obj.id;
         ubidotsVariableObject.set_VariableID_Callback(new_id);
     });
 }
@@ -97,7 +97,7 @@ function GetVariableID(ubidotsVariableObject)
 //Function to upload values to Ubidots
 function UploadToUbidots(variable_api_label, variable_value)
 {
-	var url = "https://industrial.api.ubidots.com/api/v1.6/devices/" + DEVICE_API_LABEL + "/";
+	var url = "https://" + window.location.hostname + "/api/v1.6/devices/" + DEVICE_API_LABEL + "/";
 	var headers = {'Content-Type' : 'application/json', 'X-Auth-Token' : TOKEN};
 	var data = "{\"" + variable_api_label + "\": {\"value\": " + variable_value + "}}";	
 	
@@ -107,7 +107,7 @@ function UploadToUbidots(variable_api_label, variable_value)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 function UploadVariableToUbidots(variableApiLabel, variableValue, variableContext)
 {
-	var url = "https://industrial.api.ubidots.com/api/v1.6/devices/" + DEVICE_API_LABEL + "/";
+	var url = "https://" + window.location.hostname + "/api/v1.6/devices/" + DEVICE_API_LABEL + "/";
 	var headers = {'Content-Type' : 'application/json', 'X-Auth-Token' : TOKEN};
 	var data = "{\"" + variableApiLabel + "\": {\"value\": " + variableValue + ", \"context\":" + JSON.stringify(variableContext) + "}}";	
 	
@@ -117,7 +117,7 @@ function UploadVariableToUbidots(variableApiLabel, variableValue, variableContex
 //Function to get a value from ubidots
 function GetValueFromUbidots(ubidotsVariableObject) 
 {
-	var url = "https://industrial.api.ubidots.com/api/v1.6/devices/" + DEVICE_API_LABEL + "/" + ubidotsVariableObject.ubidots_api_label + "/values";
+	var url = "https://" + window.location.hostname + "/api/v1.6/devices/" + DEVICE_API_LABEL + "/" + ubidotsVariableObject.ubidots_api_label + "/values";
 	var headers = {'Content-Type' : 'application/json', 'X-Auth-Token' : TOKEN};		
 
 	$.get({url : url, headers : headers}, function(res)
@@ -129,7 +129,7 @@ function GetValueFromUbidots(ubidotsVariableObject)
 
 function GetVariableFromUbidots(ubidotsVariableObject) 
 {
-	var url = "https://industrial.api.ubidots.com/api/v1.6/devices/" + DEVICE_API_LABEL + "/" + ubidotsVariableObject.ubidots_api_label + "/values";
+	var url = "https://" + window.location.hostname + "/api/v1.6/devices/" + DEVICE_API_LABEL + "/" + ubidotsVariableObject.ubidots_api_label + "/values";
 	var headers = {'Content-Type' : 'application/json', 'X-Auth-Token' : TOKEN};		
 
 	$.get({url : url, headers : headers}, function(res)
@@ -213,10 +213,6 @@ class Ubidots_Variable_Class
 //class initialisation
 let end_coordinates = new Ubidots_Variable_Class('end_pos', end_pos_callback);
 let centre_coordinates = new Ubidots_Variable_Class('centre_pos', centre_pos_callback);
-
-//icon settings
-//const pivot_angle_icon_url = 'https://i.ibb.co/5Y4jyDc/Up-Balloon-thing-white-241pxlength.png';
-//const pivot_angle_icon_length = 241; //length in pixels between the centre and end of the icon dial
 
 //Mapbox Settings
 mapboxgl.accessToken = 'pk.eyJ1Ijoic2NvdHRhbGV4Z3JheSIsImEiOiJja3lvZ2hjd3MwZGFzMnVuMnlzMGR5OTRmIn0.rv56rls1EfTb-MMKFpIhrg';
@@ -462,28 +458,15 @@ function addRealtimePivotLayer()
 const min_heading = 10; //minimum pivot heading in degrees
 const max_heading = 180; //maximum pivot heading in degrees
 
-let sector_application_object = new Ubidots_Variable_Class('sector_application', sector_application_callback);
+let sector_application_object = new Ubidots_Variable_Class('variable_application_rate', sector_application_callback);
 
 
 //data structure for storing sector application and pivot min/max angles (will eventually be the context of a ubidots variable)
 var sectorApplicationBrowser = 
-[
-	{
-		'sectorIndex':0,
-		'angle': 0,
-		'application': 5.0
-	},
-	{
-		'sectorIndex':1,
-		'angle': 45,
-		'application': 6.0
-	},
-	{
-		'sectorIndex':2,
-		'angle': 70,
-		'application': 10.0
-	}
-];
+{
+	"sectors":[
+
+	]};
 
 
 var all_sector_source_data =
@@ -506,19 +489,21 @@ var all_sector_source_data =
 function sector_application_callback(res)
 {
 	//Callback called when ubidots updates the variable sector_application
+	console.log("sector_application_callback");
+
 
     //parse the res parameter as a JSON file
     var obj = JSON.parse(res);
     //create another variable from the context key of the JSON obj
     var context = obj.context;
-	var newSectorApplication = JSON.parse(context);
+	//console.log("context:");
+	//console.log(context);
 
-	console.log(newSectorApplication);
+    //update the browser version of the context of the sector_application
+	UpdateSectorApplicationBrowser(context);
 
-    //set local sectorApplicationBrowser to the obj
-    sectorApplicationBrowser = newSectorApplication;
-    //update the sectors visually 
-    updateSectorSource(sectorApplicationBrowser);
+	//update the sectors visually
+    UpdateSectorSource();
 }
 
 //enabling and disabling realtime pivot layers
@@ -548,19 +533,20 @@ function removeSectorLayer()
 	}
 }
 
-//parameter sector_info : the context of a ubidots variable containing the sector application rates
-//this function should be called when the sector_application variable is changed on ubidots, or if the centre position has changed (not added yet)
-function updateSectorSource(sector_info)
+function UpdateSectorApplicationBrowser(newContext)
 {
-	console.log("updateSectorSource");
-	console.log("sector_info");
-	console.log(sector_info);
-	var parsed = JSON.parse(JSON.stringify(sector_info));
-	console.log("parsed");
-	console.log(parsed);
+	sectorApplicationBrowser = newContext;
+}
+
+
+//Update/Refresh the source of the sector data for the map so it updates visually
+function UpdateSectorSource()
+{
+	console.log("UpdateSectorSource");
+
     //number of sectors
-    var sector_count = parsed.application_sectors.length;
-	console.log("sector_count: " + sector_count);
+    var _sectorCount = sectorApplicationBrowser.sectors.length;
+	console.log("_sectorCount: " + _sectorCount);
 
     //new feature form/format
     var new_data = {
@@ -579,10 +565,10 @@ function updateSectorSource(sector_info)
     var center = [pivot_centre.lng, pivot_centre.lat];      
     var radius = turf.distance([pivot_centre.lng, pivot_centre.lat], [pivot_end.lng, pivot_end.lat], {units: 'kilometers'});   
        
-	var options = {steps: 60, units: 'kilometers'};
+	var options = {steps: 360, units: 'kilometers'};
 	//I think if you use a number of steps that creates fractional angles you get strange dividing
 
-    for(let i =0; i < sector_count; i++)
+    for(let i =0; i < _sectorCount; i++)
     {
         //new_feature data structure for adding a new sector feature
         var new_feature = {
@@ -598,19 +584,19 @@ function updateSectorSource(sector_info)
 		};
         
         //generate coordinates for particular sector
-        var bearing1 = sector_info.application_sectors[i].angle;
+        var bearing1 = sectorApplicationBrowser.sectors[i].angle;
         var bearing2 = 0;
 
         //Note all angles are clockwise positive
-        if(i < sector_count-1)
+        if(i < _sectorCount-1)
         {     
 			//then there is another sector line afterwards and we can use this as the next angle       
-            bearing2 = sector_info.application_sectors[i+1].angle;			       
+            bearing2 = sectorApplicationBrowser.sectors[i+1].angle;			       
         }
         else
         {
             //this is the last sector, and the next bearing is the first bearing
-            bearing2 = sector_info.application_sectors[0].angle;
+            bearing2 = sectorApplicationBrowser.sectors[0].angle;
         }        
 		
 		//generate coordinates for sector
@@ -618,7 +604,7 @@ function updateSectorSource(sector_info)
 
         //Populate the new feature with information from this particular sector
         new_feature.geometry.coordinates = turf_sector.geometry.coordinates; //coordinates for polygon sector
-        new_feature.properties.application = sector_info.application_sectors[i].application; //application
+        new_feature.properties.application = sectorApplicationBrowser.sectors[i].application; //application
 		new_feature.properties.sectorIndex = i; //index
 
 		
@@ -669,7 +655,7 @@ function addSectorLayer()
     });
 
     //update the sector information
-    updateSectorSource(sectorApplicationBrowser);
+    UpdateSectorSource();
 
 
 }
@@ -743,20 +729,20 @@ function OnSectorApplicationModified(sectorIndexClicked, newApplication)
 {
 	console.log("Sector: " + sectorIndexClicked + " application rate: " + newApplication);
 	//Update browser/ local variable/json object
-	var _sectorCount = sectorApplicationBrowser.application_sectors.length;
+	var _sectorCount = sectorApplicationBrowser.sectors.length;
 	
 	var sectorApplicationBrowser_temp = sectorApplicationBrowser; //create a temporary copy of the sectorApplication
 
-	sectorApplicationBrowser_temp.application_sectors[sectorIndexClicked].application = newApplication; //modify the temporary variable
+	sectorApplicationBrowser_temp.sectors[sectorIndexClicked].application = newApplication; //modify the temporary variable
 
 	//set the original variable to the temporay variable
 	sectorApplicationBrowser = sectorApplicationBrowser_temp;
 
 	//update the sectors on the map with the temporary variable
-	updateSectorSource(sectorApplicationBrowser_temp);
+	UpdateSectorSource();
 
 	//transmit new sectorApplicationBrowser JSON variable to the ubidots context
-	UploadVariableToUbidots(sector_application_object.ubidots_api_label, 0, sectorApplicationBrowser_temp);
+	UploadVariableToUbidots(sector_application_object.ubidots_api_label, 0, sectorApplicationBrowser);
 }
 
 
